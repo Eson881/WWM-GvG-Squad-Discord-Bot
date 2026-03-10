@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>分隊管理 - 百業戰報名</title>
+  <style>
+    :root, [data-theme="dark"] {
+      --bg: #1a1b26;
+      --surface: #24283b;
+      --border: #3b4261;
+      --text: #c0caf5;
+      --text-dim: #565f89;
+      --accent: #7aa2f7;
+      --accent-hover: #89b4fa;
+      --danger: #f7768e;
+      --success: #9ece6a;
+    }
+    [data-theme="light"] {
+      --bg: #e8e9ed;
+      --surface: #fff;
+      --border: #b4b8c5;
+      --text: #1a1b26;
+      --text-dim: #565f89;
+      --accent: #2e7de0;
+      --accent-hover: #1a5fb4;
+      --danger: #c64343;
+      --success: #2e7d32;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1rem;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; color: var(--accent); }
+    .need-link {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-dim);
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .filters label { margin-right: 0.25rem; color: var(--text-dim); }
+    .filters select, .filters input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      min-width: 120px;
+    }
+    .filters input[type="text"] { min-width: 160px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(200px, 40vh) minmax(200px, 1fr);
+      gap: 1rem;
+      align-items: stretch;
+    }
+    @media (max-width: 900px) { .layout { grid-template-rows: minmax(180px, 35vh) minmax(180px, 1fr); } }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel-title {
+      padding: 0.6rem 1rem;
+      background: rgba(0,0,0,0.2);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .signup-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+      align-content: start;
+      max-height: 100%;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+    .signup-card {
+      min-height: 120px;
+      padding: 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: grab;
+    }
+    .signup-card:active { cursor: grabbing; }
+    .signup-card.dragging { opacity: 0.5; }
+    .signup-card:hover { border-color: var(--accent); background: rgba(122,162,247,0.06); }
+    .signup-card .card-main-style { color: var(--text-dim); font-size: 0.75rem; }
+    .signup-card .card-sub-style { color: var(--text-dim); font-size: 0.75rem; }
+    .signup-card .card-game-name { font-weight: 600; font-size: 0.95rem; margin: 0.25rem 0; word-break: break-word; }
+    .signup-card .card-rank { font-size: 0.8rem; }
+    .signup-card .card-status { font-size: 0.75rem; color: var(--success); margin-top: 0.25rem; }
+    .signup-card .card-status.unassigned { color: var(--text-dim); }
+    .team-members.drop-target { min-height: 2rem; border: 2px dashed var(--border); border-radius: 4px; }
+    .team-members.drop-target.drag-over { border-color: var(--accent); background: rgba(122,162,247,0.1); }
+    .member-row .member-name-wrap { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+    .member-row .style-btns { display: flex; gap: 0.2rem; margin-left: 0.25rem; }
+    .member-row .member-style-label { font-size: 0.75rem; color: var(--text-dim); }
+    .style-btn {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+      padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.7rem;
+    }
+    .style-btn:hover { border-color: var(--accent); color: var(--text); }
+    .style-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+    .captain-star {
+      background: none; border: none; padding: 0; cursor: pointer; font-size: 1rem; line-height: 1;
+      color: var(--text-dim);
+    }
+    .captain-star:hover { color: var(--accent); }
+    .captain-star.filled { color: var(--accent); }
+    .teams-list { padding: 0.5rem; }
+    .team-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+    .team-card:last-child { margin-bottom: 0; }
+    .team-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .team-name-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .team-name-input:focus { outline: none; }
+    .btn {
+      border: none;
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .btn-sm { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { opacity: 0.9; }
+    .team-members { padding: 0.5rem 0.75rem; }
+    .member-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.35rem 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .member-row:last-child { border-bottom: none; }
+    .member-row .remove-member { color: var(--text-dim); cursor: pointer; }
+    .member-row .remove-member:hover { color: var(--danger); }
+    .add-team-row { padding: 0.5rem 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .theme-toggle { margin-left: auto; }
+    .theme-toggle.btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+    .theme-toggle.btn:hover { border-color: var(--accent); }
+    .btn-export { background: var(--success); color: #fff; }
+    .btn-export:hover { opacity: 0.9; }
+    .loading, .error { padding: 1rem; text-align: center; color: var(--text-dim); }
+    .error { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="need-link" id="needLink">請在 Discord 使用 <strong>/team_manage</strong> 取得管理連結後再開啟此頁。</div>
+    <div id="main" style="display:none;">
+      <div class="header-row" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+        <h1 id="pageTitle">分隊管理</h1>
+        <button type="button" class="btn theme-toggle" id="themeToggle" title="切換淺色/深色">🌓 淺色/深色</button>
+      </div>
+      <div class="filters">
+        <label>主流派</label>
+        <select id="filterMainStyle">
+          <option value="">全部</option>
+        </select>
+        <label>副流派</label>
+        <select id="filterSubStyle">
+          <option value="">全部</option>
+        </select>
+        <label>段位</label>
+        <select id="filterRank">
+          <option value="">全部</option>
+        </select>
+        <label>分隊狀態</label>
+        <select id="filterAssigned">
+          <option value="">全部</option>
+          <option value="no">未分隊</option>
+          <option value="yes">已分隊</option>
+        </select>
+        <label>搜尋</label>
+        <input type="text" id="filterSearch" placeholder="遊戲名 / 副流派">
+      </div>
+      <div class="layout">
+        <div class="panel">
+          <div class="panel-title">報名名單</div>
+          <div class="signup-list" id="signupList">
+            <div class="loading">載入中…</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">隊伍</div>
+          <div class="teams-list" id="teamsList">
+            <div class="loading">載入中…</div>
+          </div>
+          <div class="add-team-row">
+            <button class="btn btn-primary" id="addTeamBtn">＋ 新增隊伍</button>
+            <button class="btn btn-export" id="exportImageBtn">📷 匯出分隊圖</button>
+            <button class="btn btn-primary" id="copyTextBtn">📋 複製分隊文字</button>
+            <button type="button" class="btn theme-toggle" id="themeToggleBottom" title="切換淺色/深色" style="margin-left:auto;">🌓 淺色/深色</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const formId = params.get("form_id");
+      const token = params.get("token");
+
+      if (!formId || !token) {
+        document.getElementById("needLink").style.display = "block";
+        return;
+      }
+
+      document.getElementById("needLink").style.display = "none";
+      document.getElementById("main").style.display = "block";
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme || "dark");
+        try { localStorage.setItem("gvg_theme", theme || "dark"); } catch (e) {}
+      }
+      (function initTheme() {
+        try {
+          const saved = localStorage.getItem("gvg_theme");
+          applyTheme(saved === "light" ? "light" : "dark");
+        } catch (e) { applyTheme("dark"); }
+      })();
+      function toggleTheme() {
+        const cur = document.documentElement.getAttribute("data-theme");
+        applyTheme(cur === "light" ? "dark" : "light");
+      }
+      document.getElementById("themeToggle").addEventListener("click", toggleTheme);
+      document.getElementById("themeToggleBottom").addEventListener("click", toggleTheme);
+
+      const q = (s) => "?token=" + encodeURIComponent(token);
+      const api = {
+        meta: () => fetch("/api/forms/" + formId + "/meta" + q()).then(r => r.ok ? r.json() : Promise.reject(r)),
+        signups: (opts) => {
+          const u = new URLSearchParams({ token });
+          if (opts && opts.main_style) u.set("main_style", opts.main_style);
+          if (opts && opts.sub_style) u.set("sub_style", opts.sub_style);
+          if (opts && opts.rank) u.set("rank", opts.rank);
+          if (opts && opts.search) u.set("search", opts.search);
+          return fetch("/api/forms/" + formId + "/signups?" + u).then(r => r.ok ? r.json() : Promise.reject(r));
+        },
+        teams: () => fetch("/api/forms/" + formId + "/teams" + q()).then(r => r.ok ? r.json() : Promise.reject(r)),
+        createTeam: (name) => fetch("/api/forms/" + formId + "/teams" + q(), {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name })
+        }).then(r => r.ok ? r.json() : Promise.reject(r)),
+        updateTeam: (teamId, data) => fetch("/api/forms/" + formId + "/teams/" + teamId + q(), {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data)
+        }).then(r => r.ok ? r.json() : Promise.reject(r)),
+        deleteTeam: (teamId) => fetch("/api/forms/" + formId + "/teams/" + teamId + q(), { method: "DELETE" }).then(r => r.ok ? r.json() : Promise.reject(r)),
+        addMember: (teamId, userId) => fetch("/api/forms/" + formId + "/teams/" + teamId + "/members" + q(), {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: parseInt(userId, 10) })
+        }).then(r => r.ok ? r.json() : Promise.reject(r)),
+        removeMember: (teamId, userId) => fetch("/api/forms/" + formId + "/teams/" + teamId + "/members/" + userId + q(), { method: "DELETE" }).then(r => r.ok ? r.json() : Promise.reject(r))
+      };
+
+      let allSignups = [];
+      let teams = [];
+
+      function mainStyleFrom(s) { return (s || "").split("｜")[0].trim(); }
+      function subStyleFrom(s) { return (s || "").split("｜")[0].trim(); }
+      function styleDisplay(s) {
+        if (!s || !s.trim()) return "—";
+        const i = s.indexOf("｜");
+        if (i >= 0) {
+          const before = s.substring(0, i).trim();
+          if (before.indexOf("邪修") === 0) return s.slice(i + 1).trim();
+        }
+        return (s.split("｜")[0] || "").trim() || "—";
+      }
+
+      function renderFilters() {
+        const mainStyles = [...new Set(allSignups.map(s => mainStyleFrom(s.main_style)))].filter(Boolean).sort();
+        const subStyles = [...new Set(allSignups.map(s => subStyleFrom(s.sub_style)))].filter(Boolean).sort();
+        const ranks = [...new Set(allSignups.map(s => s.rank).filter(Boolean))].sort();
+        const selMain = document.getElementById("filterMainStyle");
+        const selSub = document.getElementById("filterSubStyle");
+        const selRank = document.getElementById("filterRank");
+        selMain.innerHTML = "<option value=\"\">全部</option>" + mainStyles.map(x => "<option value=\"" + escapeHtml(x) + "\">" + escapeHtml(x) + "</option>").join("");
+        selSub.innerHTML = "<option value=\"\">全部</option>" + subStyles.map(x => "<option value=\"" + escapeHtml(x) + "\">" + escapeHtml(x) + "</option>").join("");
+        selRank.innerHTML = "<option value=\"\">全部</option>" + ranks.map(x => "<option value=\"" + escapeHtml(x) + "\">" + escapeHtml(x) + "</option>").join("");
+      }
+
+      function getFilteredSignups() {
+        const main = document.getElementById("filterMainStyle").value;
+        const sub = document.getElementById("filterSubStyle").value;
+        const rank = document.getElementById("filterRank").value;
+        const assigned = document.getElementById("filterAssigned").value;
+        const search = (document.getElementById("filterSearch").value || "").trim().toLowerCase();
+        const uidToTeam = userIdToTeamId();
+        return allSignups.filter(s => {
+          if (main && mainStyleFrom(s.main_style) !== main) return false;
+          if (sub && subStyleFrom(s.sub_style) !== sub) return false;
+          if (rank && s.rank !== rank) return false;
+          if (assigned === "yes" && !uidToTeam[s.user_id]) return false;
+          if (assigned === "no" && uidToTeam[s.user_id]) return false;
+          if (search) {
+            const gn = (s.game_name || "").toLowerCase();
+            const subStr = (s.sub_style || "").toLowerCase();
+            if (!gn.includes(search) && !subStr.includes(search)) return false;
+          }
+          return true;
+        });
+      }
+
+      function userIdToTeamId() {
+        const map = {};
+        teams.forEach(t => t.member_ids.forEach(uid => { map[uid] = t.id; }));
+        return map;
+      }
+
+      function renderSignupList() {
+        const list = document.getElementById("signupList");
+        const filtered = getFilteredSignups();
+        const uidToTeam = userIdToTeamId();
+        const teamById = {};
+        teams.forEach(t => { teamById[t.id] = t; });
+        list.innerHTML = filtered.map(s => {
+          const inTeam = uidToTeam[s.user_id];
+          const teamName = inTeam ? (teamById[inTeam] && teamById[inTeam].name) || "?" : "";
+          const mainStr = escapeHtml(styleDisplay(s.main_style));
+          const subStr = escapeHtml(styleDisplay(s.sub_style));
+          const statusText = teamName ? "已分隊：" + escapeHtml(teamName) : "拖曳至下方隊伍";
+          const statusClass = teamName ? "card-status" : "card-status unassigned";
+          return "<div class=\"signup-card\" draggable=\"true\" data-user-id=\"" + s.user_id + "\">" +
+            "<div class=\"card-main-style\">" + mainStr + "</div>" +
+            "<div class=\"card-sub-style\">" + subStr + "</div>" +
+            "<div class=\"card-game-name\">" + escapeHtml(s.game_name || "") + "</div>" +
+            "<div class=\"card-rank\">" + escapeHtml(s.rank || "") + "</div>" +
+            "<div class=\"" + statusClass + "\">" + statusText + "</div>" +
+            "</div>";
+        }).join("");
+        list.querySelectorAll(".signup-card").forEach(card => {
+          card.addEventListener("dragstart", function(e) {
+            e.dataTransfer.setData("text/plain", this.getAttribute("data-user-id"));
+            e.dataTransfer.effectAllowed = "move";
+            this.classList.add("dragging");
+          });
+          card.addEventListener("dragend", function() { this.classList.remove("dragging"); });
+        });
+      }
+
+      function renderTeams() {
+        const list = document.getElementById("teamsList");
+        const signupByUid = {};
+        allSignups.forEach(s => { signupByUid[s.user_id] = s; });
+        list.innerHTML = teams.map(t => {
+          const captainId = t.captain_id != null ? t.captain_id : null;
+          const stylePrefs = t.style_prefs || {};
+          const membersHtml = t.member_ids.map(uid => {
+            const s = signupByUid[uid];
+            const label = s ? (s.game_name || String(uid)) : uid;
+            const isCaptain = captainId === uid;
+            const starChar = isCaptain ? "&#9733;" : "&#9734;";
+            const starClass = "captain-star" + (isCaptain ? " filled" : "");
+            const pref = stylePrefs[uid] || stylePrefs[String(uid)] || "main";
+            const mainActive = pref === "main" ? " style-btn active" : " style-btn";
+            const subActive = pref === "sub" ? " style-btn active" : " style-btn";
+            const styleText = s ? (pref === "sub" ? styleDisplay(s.sub_style) : styleDisplay(s.main_style)) : "";
+            const styleLabel = styleText ? "<span class=\"member-style-label\"> " + escapeHtml(styleText) + "</span>" : "";
+            return "<div class=\"member-row\"><span class=\"member-name-wrap\"><button type=\"button\" class=\"" + starClass + "\" data-team-id=\"" + t.id + "\" data-user-id=\"" + uid + "\" title=\"" + (isCaptain ? "取消隊長" : "設為隊長") + "\">" + starChar + "</button><span>" + escapeHtml(label) + "</span><span class=\"style-btns\"><button type=\"button\" class=\"" + mainActive + "\" data-team-id=\"" + t.id + "\" data-user-id=\"" + uid + "\" data-style=\"main\">主流派</button><button type=\"button\" class=\"" + subActive + "\" data-team-id=\"" + t.id + "\" data-user-id=\"" + uid + "\" data-style=\"sub\">副流派</button></span>" + styleLabel + "</span><span class=\"remove-member\" data-team-id=\"" + t.id + "\" data-user-id=\"" + uid + "\">移除</span></div>";
+          }).join("");
+          return "<div class=\"team-card\" data-team-id=\"" + t.id + "\">" +
+            "<div class=\"team-head\"><input type=\"text\" class=\"team-name-input\" value=\"" + escapeHtml(t.name) + "\" data-team-id=\"" + t.id + "\">" +
+            "<button class=\"btn btn-danger btn-sm\" data-team-id=\"" + t.id + "\">刪除隊伍</button></div>" +
+            "<div class=\"team-members drop-target\" data-team-id=\"" + t.id + "\">" + (membersHtml || "<div class=\"member-row\" style=\"color:var(--text-dim)\">尚無成員 — 可從上方拖曳報名至此</div>") + "</div></div>";
+        }).join("");
+        list.querySelectorAll(".team-name-input").forEach(inp => {
+          inp.addEventListener("blur", function() {
+            const teamId = this.getAttribute("data-team-id");
+            const name = this.value.trim() || "未命名隊伍";
+            api.updateTeam(teamId, { name }).then(() => { loadTeams().then(renderAll); });
+          });
+        });
+        list.querySelectorAll(".remove-member").forEach(el => {
+          el.addEventListener("click", function() {
+            const teamId = this.getAttribute("data-team-id");
+            const userId = this.getAttribute("data-user-id");
+            api.removeMember(teamId, userId).then(() => loadTeams().then(renderAll));
+          });
+        });
+        list.querySelectorAll(".captain-star").forEach(btn => {
+          btn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const teamId = this.getAttribute("data-team-id");
+            const userId = this.getAttribute("data-user-id");
+            const isFilled = this.classList.contains("filled");
+            const payload = isFilled ? { captain_id: null } : { captain_id: parseInt(userId, 10) };
+            api.updateTeam(teamId, payload).then(() => loadTeams().then(renderAll));
+          });
+        });
+        list.querySelectorAll(".style-btn").forEach(btn => {
+          btn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const teamId = this.getAttribute("data-team-id");
+            const userId = this.getAttribute("data-user-id");
+            const style = this.getAttribute("data-style");
+            if (!teamId || !userId || !style) return;
+            const team = teams.find(z => z.id === teamId);
+            const prefs = Object.assign({}, team && team.style_prefs ? team.style_prefs : {});
+            prefs[userId] = style;
+            api.updateTeam(teamId, { style_prefs: prefs }).then(() => loadTeams().then(renderAll));
+          });
+        });
+        list.querySelectorAll(".btn-danger[data-team-id]").forEach(btn => {
+          btn.addEventListener("click", function() {
+            if (!confirm("確定要刪除此隊伍？")) return;
+            api.deleteTeam(this.getAttribute("data-team-id")).then(() => loadTeams().then(renderAll));
+          });
+        });
+        list.querySelectorAll(".team-members.drop-target").forEach(zone => {
+          const teamId = zone.getAttribute("data-team-id");
+          zone.addEventListener("dragover", function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            this.classList.add("drag-over");
+          });
+          zone.addEventListener("dragleave", function(e) {
+            if (!this.contains(e.relatedTarget)) this.classList.remove("drag-over");
+          });
+          zone.addEventListener("drop", function(e) {
+            e.preventDefault();
+            this.classList.remove("drag-over");
+            const userId = e.dataTransfer.getData("text/plain");
+            if (!userId || !teamId) return;
+            api.addMember(teamId, userId).then(() => loadTeams().then(renderAll));
+          });
+        });
+      }
+
+      function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function exportTeamImage() {
+        const signupByUid = {};
+        allSignups.forEach(s => { signupByUid[s.user_id] = s; });
+        const root = document.documentElement;
+        const style = getComputedStyle(root);
+        const getVar = (name, fallback) => (style.getPropertyValue(name).trim() || fallback);
+        const bg = getVar("--bg", "#1a1b26");
+        const surface = getVar("--surface", "#24283b");
+        const border = getVar("--border", "#3b4261");
+        const text = getVar("--text", "#c0caf5");
+        const accent = getVar("--accent", "#7aa2f7");
+        const title = document.getElementById("pageTitle").textContent || "分隊一覽";
+        const padding = 24;
+        const lineH = 22;
+        const teamGap = 16;
+        const teamPad = 12;
+        const font = "16px \"Microsoft JhengHei\", \"Segoe UI\", sans-serif";
+        const fontSmall = "13px \"Microsoft JhengHei\", \"Segoe UI\", sans-serif";
+        const scale = Math.max(3, window.devicePixelRatio || 2);
+        let maxW = 400;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.font = font;
+        const titleW = ctx.measureText(title).width;
+        if (titleW + padding * 2 > maxW) maxW = titleW + padding * 2;
+        let totalH = padding + lineH;
+        teams.forEach(t => {
+          const stylePrefs = t.style_prefs || {};
+          const captainId = t.captain_id != null ? t.captain_id : null;
+          const memberGap = 15;
+          const memberLines = t.member_ids.map(uid => {
+            const s = signupByUid[uid];
+            const name = s ? (s.game_name || String(uid)) : String(uid);
+            const pref = stylePrefs[uid] || stylePrefs[String(uid)] || "main";
+            const styleStr = s ? (pref === "sub" ? styleDisplay(s.sub_style) : styleDisplay(s.main_style)) : "";
+            const cap = captainId === uid ? " ★" : "";
+            return name + cap + (styleStr ? " [" + styleStr + "]" : "");
+          });
+          ctx.font = fontSmall;
+          memberLines.forEach(l => {
+            const w = ctx.measureText(l).width;
+            if (w + teamPad * 2 + padding * 2 > maxW) maxW = w + teamPad * 2 + padding * 2;
+          });
+          totalH += lineH + teamPad * 2 + memberGap + memberLines.length * lineH + teamGap;
+        });
+        totalH += padding;
+        const logicalW = maxW + padding * 2;
+        const logicalH = totalH;
+        canvas.width = logicalW * scale;
+        canvas.height = logicalH * scale;
+        ctx.scale(scale, scale);
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, logicalW, logicalH);
+        ctx.fillStyle = text;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.font = font;
+        let y = padding;
+        ctx.fillText(title, padding, y);
+        y += lineH + teamGap;
+        teams.forEach(t => {
+          const stylePrefs = t.style_prefs || {};
+          const captainId = t.captain_id != null ? t.captain_id : null;
+          const memberGap = 15;
+          const memberLines = t.member_ids.map(uid => {
+            const s = signupByUid[uid];
+            const name = s ? (s.game_name || String(uid)) : String(uid);
+            const pref = stylePrefs[uid] || stylePrefs[String(uid)] || "main";
+            const styleStr = s ? (pref === "sub" ? styleDisplay(s.sub_style) : styleDisplay(s.main_style)) : "";
+            const cap = captainId === uid ? " ★" : "";
+            return name + cap + (styleStr ? " [" + styleStr + "]" : "");
+          });
+          const boxH = lineH + teamPad * 2 + memberGap + Math.max(1, memberLines.length) * lineH;
+          const boxW = maxW - padding * 2;
+          ctx.strokeRect(padding, y, boxW, boxH);
+          ctx.fillStyle = surface;
+          ctx.fillRect(padding + 1, y + 1, boxW - 2, boxH - 2);
+          const headerBottomY = y + lineH + teamPad * 2;
+          ctx.strokeStyle = border;
+          ctx.beginPath();
+          ctx.moveTo(padding + 1, headerBottomY);
+          ctx.lineTo(padding + boxW - 1, headerBottomY);
+          ctx.stroke();
+          ctx.strokeStyle = border;
+          ctx.fillStyle = accent;
+          ctx.font = "bold " + fontSmall;
+          ctx.fillText(t.name, padding + teamPad, y + teamPad + lineH - 4);
+          ctx.fillStyle = text;
+          ctx.font = fontSmall;
+          const memberStartY = headerBottomY + memberGap;
+          let my = memberStartY;
+          memberLines.forEach(l => {
+            ctx.fillText(l, padding + teamPad, my);
+            my += lineH;
+          });
+          y += boxH + teamGap;
+        });
+        const dataUrl = canvas.toDataURL("image/png");
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = "分隊一覽_" + (new Date().toISOString().slice(0, 10)) + ".png";
+        a.click();
+      }
+
+      document.getElementById("exportImageBtn").addEventListener("click", function() {
+        if (!teams.length) { alert("尚無隊伍，請先新增隊伍並分隊。"); return; }
+        exportTeamImage();
+      });
+
+      function getTeamTextExport() {
+        const signupByUid = {};
+        allSignups.forEach(s => { signupByUid[s.user_id] = s; });
+        const title = document.getElementById("pageTitle").textContent || "分隊一覽";
+        const lines = [title, ""];
+        teams.forEach(t => {
+          lines.push(t.name);
+          const stylePrefs = t.style_prefs || {};
+          const captainId = t.captain_id != null ? t.captain_id : null;
+          t.member_ids.forEach((uid, idx) => {
+            const s = signupByUid[uid];
+            const name = s ? (s.game_name || String(uid)) : String(uid);
+            const pref = stylePrefs[uid] || stylePrefs[String(uid)] || "main";
+            const styleStr = s ? (pref === "sub" ? styleDisplay(s.sub_style) : styleDisplay(s.main_style)) : "";
+            const num = idx + 1;
+            if (captainId === uid) {
+              lines.push(num + ". **" + name + "** ★ [" + styleStr + "]");
+            } else {
+              lines.push(num + ". " + name + " [" + styleStr + "]");
+            }
+          });
+          lines.push("");
+        });
+        return lines.join("\n");
+      }
+
+      document.getElementById("copyTextBtn").addEventListener("click", function() {
+        if (!teams.length) { alert("尚無隊伍，請先新增隊伍並分隊。"); return; }
+        const text = getTeamTextExport();
+        const btn = this;
+        navigator.clipboard.writeText(text).then(function() {
+          const orig = btn.textContent;
+          btn.textContent = "已複製";
+          setTimeout(function() { btn.textContent = orig; }, 2000);
+        }).catch(function() { alert("無法寫入剪貼簿，請手動複製。"); });
+      });
+
+      function renderAll() {
+        renderSignupList();
+        renderTeams();
+      }
+
+      function loadTeams() {
+        return api.teams().then(data => { teams = data.teams || []; });
+      }
+
+      document.getElementById("filterMainStyle").addEventListener("change", renderSignupList);
+      document.getElementById("filterSubStyle").addEventListener("change", renderSignupList);
+      document.getElementById("filterRank").addEventListener("change", renderSignupList);
+      document.getElementById("filterAssigned").addEventListener("change", renderSignupList);
+      document.getElementById("filterSearch").addEventListener("input", renderSignupList);
+
+      document.getElementById("addTeamBtn").addEventListener("click", function() {
+        const name = prompt("新隊伍名稱：", "未命名隊伍") || "未命名隊伍";
+        api.createTeam(name).then(() => loadTeams().then(renderAll));
+      });
+
+      Promise.all([api.meta(), api.signups(), api.teams()])
+        .then(([meta, signupData, teamData]) => {
+          document.getElementById("pageTitle").textContent = "分隊管理 － 表單 #" + formId + " " + (meta.title || "");
+          allSignups = signupData.signups || [];
+          teams = teamData.teams || [];
+          renderFilters();
+          renderAll();
+        })
+        .catch(err => {
+          const list = document.getElementById("signupList");
+          const msg = (err && err.json) ? "權限不足或連結已過期" : (err.message || "載入失敗");
+          list.innerHTML = "<div class=\"error\">" + escapeHtml(msg) + "。請在 Discord 重新使用 /team_manage 取得新連結。</div>";
+          document.getElementById("teamsList").innerHTML = "";
+        });
+    })();
+  </script>
+</body>
+</html>
