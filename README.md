@@ -1,6 +1,6 @@
-# 百業戰報名 Discord 機器人 — macOS 啟動教學
+# 百業戰報名 Discord 機器人 — 啟動教學（macOS / Windows）
 
-本教學說明如何在 **macOS** 上從零開始啟動此機器人（含報名表、分隊網頁功能）。
+本教學說明如何在 **macOS** 與 **Windows** 上從零開始啟動此機器人（含報名表、分隊網頁功能）。**macOS** 請從「一、環境需求」開始；**Windows** 請直接跳到下方「Windows 啟動教學」區塊。
 
 ---
 
@@ -118,7 +118,7 @@ python3 -m pip install -r requirements.txt
 2. 選擇你的應用程式（或新建一個）→ **Bot** → **Reset Token** 取得 Token
 3. 用**環境變數**提供 Token，任選一種方式：
    - **方式 A**：複製 `.env.example` 為 `.env`，在 `.env` 中填入 `DISCORD_BOT_TOKEN=你的Token`（`.env` 已在 .gitignore 中，不會被提交）。
-   - **方式 B**：在終端機執行一次 `export DISCORD_BOT_TOKEN=你的Token` 再啟動機器人。
+   - **方式 B**：在終端機執行一次 `export DISCORD_BOT_TOKEN=你的Token` 再啟動機器人。**Windows 使用者**若用終端機設定環境變數：CMD 用 `set DISCORD_BOT_TOKEN=你的Token`，PowerShell 用 `$env:DISCORD_BOT_TOKEN="你的Token"`（皆僅當前視窗有效）。
 
 ⚠️ **切勿將 Token 寫入程式碼或上傳到公開地方（如 GitHub）。**
 
@@ -331,6 +331,142 @@ chmod +x start_ngrok.sh   # 僅第一次需要
 
 ---
 
+## Windows 啟動教學
+
+以下為 **Windows** 專用步驟；使用流程、目錄結構與「資料存在哪裡」同前述，不再重複。
+
+### 一、環境需求（Windows）
+
+| 項目 | 說明 |
+|------|------|
+| 作業系統 | Windows 10 或 11 |
+| Python | **3.10 或以上**（建議 3.11 / 3.12） |
+| Discord 應用程式 | 已建立好的 Bot，並取得 Token |
+
+**檢查是否已安裝 Python**：開啟 **命令提示字元（cmd）** 或 **PowerShell**，執行：
+
+```cmd
+py -3 --version
+```
+
+或
+
+```cmd
+python --version
+```
+
+若顯示 `Python 3.10.x` 或更高即可。若沒有或版本過舊，請看下一節安裝。
+
+### 二、安裝 Python（若尚未安裝）
+
+1. 前往 [Python 官網](https://www.python.org/downloads/)
+2. 下載 **Windows** 安裝檔（3.10 或以上）
+3. 執行安裝程式時，**務必勾選「Add Python to PATH」**，再完成安裝
+4. 安裝完成後，重新開啟 cmd 或 PowerShell，用 `py -3 --version` 或 `python --version` 確認
+
+（亦可從 Microsoft Store 搜尋「Python 3.12」安裝。）
+
+### 三、取得專案並進入目錄
+
+假設專案放在 `C:\Users\你的使用者名稱\Desktop\GvG`，在 cmd 或 PowerShell 執行：
+
+```cmd
+cd C:\Users\你的使用者名稱\Desktop\GvG
+```
+
+或你實際存放的路徑。確認目錄內有：`G_bot.py`、`requirements.txt`、`web/` 資料夾（內有 `index.html`）。
+
+### 四、建立虛擬環境（建議）
+
+在 **GvG 目錄**下執行：
+
+```cmd
+python -m venv venv
+```
+
+或（若上面失敗）用：
+
+```cmd
+py -3 -m venv venv
+```
+
+**啟動虛擬環境**：
+
+```cmd
+venv\Scripts\activate
+```
+
+啟動成功後，終端機前面會出現 `(venv)`。之後的 `pip`、`python` 指令都在此環境內執行。
+
+（若要離開虛擬環境，輸入 `deactivate`。）
+
+### 五、安裝依賴
+
+在**已啟動虛擬環境**的同一視窗執行：
+
+```cmd
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+若沒有錯誤即表示安裝完成。
+
+### 六、設定機器人
+
+Token 與管理員名單設定請見上方「六、設定機器人」；若用終端機設定環境變數，請用 **方式 B** 的 Windows 寫法（`set` 或 `$env:DISCORD_BOT_TOKEN="..."`）。並在 `G_bot.py` 中修改 `ADMIN_USER_IDS` 為實際管理員的 Discord 使用者 ID。
+
+### 七、啟動機器人
+
+在 **GvG 目錄**、且**已啟動虛擬環境**的視窗執行：
+
+```cmd
+python G_bot.py
+```
+
+或：
+
+```cmd
+py G_bot.py
+```
+
+正常啟動時會看到類似「已登入為：…」「分隊管理網頁已於 http://0.0.0.0:5001/team 啟動」等訊息。機器人上線後，分隊網頁會在同一進程內於 **port 5001** 啟動。
+
+**一鍵啟動（可選）**：在 GvG 目錄建立 `start.bat`，內容如下：
+
+```batch
+@echo off
+cd /d "%~dp0"
+call venv\Scripts\activate.bat
+python G_bot.py
+pause
+```
+
+之後雙擊 `start.bat` 即可啟動（`pause` 可讓視窗在結束時保留，方便看錯誤訊息）。
+
+### 八、外網連線（ngrok，Windows）
+
+若要讓不在同一個 Wi‑Fi 的裝置開啟分隊網頁，可用 ngrok。
+
+1. **安裝 ngrok**：到 [ngrok 官網](https://ngrok.com/) 註冊並下載 Windows 版，解壓後將 `ngrok.exe` 放在可執行路徑，或記住路徑。在終端機執行一次：`ngrok config add-authtoken 你的Authtoken`。
+2. **兩個視窗**：  
+   - **視窗 A**：在 GvG 目錄、已啟動 venv 下先執行 `python G_bot.py`，看到「分隊管理網頁已於…5001…啟動」後按 `Ctrl+C` 停止。  
+   - **視窗 B**：開啟**另一個** cmd 或 PowerShell，執行 `ngrok http 5001`，畫面上會出現 `Forwarding https://xxxx.ngrok-free.app -> http://localhost:5001`，把 `https://xxxx.ngrok-free.app` 複製起來。  
+   - **回到視窗 A**：設定網址後再啟動。  
+     - **CMD**：`set GVG_WEB_BASE_URL=https://xxxx.ngrok-free.app`（換成你的網址），再 `python G_bot.py`。  
+     - **PowerShell**：`$env:GVG_WEB_BASE_URL="https://xxxx.ngrok-free.app"`，再 `python G_bot.py`。  
+   - **視窗 B 的 ngrok 請保持執行**，不要關閉。
+
+之後在 Discord 用 `/team_manage` 取得的連結就會是 ngrok 網址，任何裝置都能開啟。免費版 ngrok 每次重開網址會變，需重新設定 `GVG_WEB_BASE_URL` 並重啟機器人。
+
+### 九、常見問題（Windows）
+
+- **找不到 `python`**：確認安裝時有勾選「Add Python to PATH」，或改用 `py -3` 執行上述指令。
+- **無法連上網站 / localhost 拒絕連線**：先確認終端機有出現「分隊管理網頁已於 http://0.0.0.0:5001/team 啟動」。若用手機或另一台電腦開連結，須把連結裡的 `localhost` 改成 **這台 Windows 電腦的區域 IP**（設定 → 網路與網際網路 → 內容可查 IP），或使用 ngrok 網址。
+- **Port 已被佔用**：在啟動前設定 `set GVG_WEB_PORT=5002`（CMD）或 `$env:GVG_WEB_PORT=5002`（PowerShell），再執行 `python G_bot.py`，並用 `http://localhost:5002/...` 開連結。
+- **分隊連結打不開或 403**：連結約 1 小時有效，過期請在 Discord 重新執行 `/team_manage` 取得新連結；從外網開啟時需已設定 `GVG_WEB_BASE_URL` 並保持 ngrok 運行。
+
+---
+
 ## 十、目錄結構參考
 
 ```
@@ -350,4 +486,4 @@ GvG/
 
 ---
 
-完成以上步驟後，在 macOS 上即可正常啟動機器人並使用報名與分隊功能。若遇到其他錯誤訊息，可把終端機完整輸出貼出來以便排查。
+完成以上步驟後，在 macOS 或 Windows 上即可正常啟動機器人並使用報名與分隊功能。若遇到其他錯誤訊息，可把終端機完整輸出貼出來以便排查。
