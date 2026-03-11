@@ -453,7 +453,7 @@ def compute_form_stats(form_id: int) -> tuple[int, Dict[str, int]]:
     """
     回傳指定表單的統計資訊：
     - total_count: 總報名人數
-    - main_style_counts: {主流派名稱: 人數}，所有邪修合併成一種「邪修」
+    - main_style_counts: {主流派名稱: 人數}，所有邪修合併
     """
     form_signups = signup_data.get(form_id, {})
     total_count = 0
@@ -1479,7 +1479,7 @@ async def list_signup(
         )
         return
 
-    # 文字模式：做成「多頁文字」+ 按鈕翻頁
+    # 文字模式：多頁文字 + 按鈕翻頁
     if format.value == "text":
         lines: list[str] = []
         for uid, d in form_signups.items():
@@ -1611,3 +1611,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     bot.run(BOT_TOKEN)
+
