@@ -30,11 +30,11 @@ logging.basicConfig(
 logger = logging.getLogger("g_bot")
 
 # ========= ！！！重要 ！！！ =========
-# Token 請用環境變數 DISCORD_BOT_TOKEN 設定，勿寫入程式碼或上傳到 GitHub
+# Token 請用環境變數 DISCORD_BOT_TOKEN 設定
 BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 
 # ========= 自訂「機器人管理員」名單 =========
-# 只有這些使用者 ID 才能使用管理指令（/create_form /delete_form /list_signup）
+# 只有這些使用者 ID 才能使用管理指令（/create_form /delete_form /list_signup /team_manage）
 # 請替換成你的 Discord 使用者 ID（右鍵頭像 → 複製使用者 ID，需先開啟開發者模式）
 ADMIN_USER_IDS = {
     123456789012345678,  # 請改成實際管理員的 ID
@@ -1609,4 +1609,5 @@ if __name__ == "__main__":
     if not BOT_TOKEN:
         logger.error("未設定 DISCORD_BOT_TOKEN，請設定環境變數後再啟動（例如：export DISCORD_BOT_TOKEN=你的Token）")
         sys.exit(1)
+
     bot.run(BOT_TOKEN)
